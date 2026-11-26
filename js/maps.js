@@ -1,4 +1,4 @@
-import {wrap,distance,rainAmount} from './weather.js';
+import {wrap,distance,rainAmount,conditions,currentSample,weatherMetric} from './weather.js';
 const maxLat=85.051;
 const clamp=lat=>Math.max(-maxLat,Math.min(maxLat,lat));
 export const latLng=(p,near=p.lon)=>[clamp(p.lat),near+wrap(p.lon-near)];
@@ -58,8 +58,18 @@ export function viewportCells(bounds,zoom,center) {
   }
   return cells.sort((a,b)=>distance(center,a)-distance(center,b));
 }
-const rainDetail=(amount,row)=>'Modeled rain: '+amount.toFixed(1)+' mm in the preceding '+Math.round((row.interval||900)/60)+' min';
-export function rainMap(origin,weather,elements) {
+const requiredFields = {
+  Sunny:['is_day','cloud_cover','weather_code'],Rain:['rain','showers'],
+  Snowfall:['snowfall'],Stormy:['weather_code'],Foggy:['weather_code'],
+  Cloudy:['cloud_cover'],Windy:['wind_speed_10m'],'Snow cover':['snow_depth'],
+  Temperature:['temperature_2m']
+};
+export function mapSample(record,category,target,now) {
+  const sample=currentSample(record,category,now);
+  if (!requiredFields[category].every(field=>Number.isFinite(sample[field]))) return null;
+  return {sample,match:conditions[category](sample,target)};
+}
+export function rainMap(origin,weather,elements,selection) {
   const map=createMap('rain-map',origin,8);
   const layer=L.layerGroup().addTo(map);
   let timer, controller, disposed=false, lastRefresh=0;
@@ -70,35 +80,40 @@ export function rainMap(origin,weather,elements) {
     controller?.abort();
     controller=new AbortController();
     const {signal}=controller;
+    const {category,target}=selection;
+    const now=Date.now();
+    const isRain=category==='Rain';
     const center=map.getCenter();
     const cells=viewportCells(map.getBounds(),map.getZoom(),{lat:center.lat,lon:center.lng});
-    elements.status.textContent='Loading modeled rain…';
+    elements.status.textContent='Loading modeled '+category.toLowerCase()+'…';
     elements.list.replaceChildren();
     elements.details.hidden=true;
+    map.closePopup();
     layer.clearLayers();
     const rectangles=cells.map(cell=>L.rectangle(cell.bounds,{
       color:'#5e6f76',opacity:.65,weight:1,fillColor:'#e3e5df',fillOpacity:.30,dashArray:'3 5'
-    }).addTo(layer).bindPopup(popup('No precipitation data for this sample.')));
+    }).addTo(layer).bindPopup(popup('No weather data for this sample.')));
     let refreshed=0,failed='',dry=0,wet=0;
     for (let offset=0;offset<cells.length;offset+=12) {
       if (signal.aborted) return;
       const chunk=cells.slice(offset,offset+12);
       try {
-        const rows=await weather.get(chunk,{signal,force,currentOnly:true});
+        const rows=await weather.get(chunk,{signal,force,currentOnly:category!=='Snow cover'});
         if (signal.aborted) return;
         rows.forEach((record,i)=>{
-          const row=record.current, amount=rainAmount(row), rect=rectangles[offset+i];
-          if (amount===null) return;
+          const value=mapSample(record,category,target,now), rect=rectangles[offset+i];
+          if (!value) return;
+          const {sample,match}=value;
           refreshed=refreshed ? Math.min(refreshed,record.fetched) : record.fetched;
-          if (amount<.1) {
+          if (!match) {
             dry++;
             rect.setStyle({color:'#7c9895',fillColor:'#e8f7f4',fillOpacity:.16,dashArray:null})
-              .setPopupContent(popup('No rain sampled here at the map threshold.'));
+              .setPopupContent(popup(isRain?'No rain sampled here at the map threshold.':'Sample does not match '+category.toLowerCase()+'.'));
             return;
           }
           wet++;
-          const detail=rainDetail(amount,row);
-          rect.setStyle({color:'#245689',fillColor:'#327ccf',fillOpacity:Math.min(.78,.38+amount*.12),dashArray:null})
+          const detail='Modeled '+category.toLowerCase()+': '+weatherMetric(sample,category);
+          rect.setStyle({color:'#245689',fillColor:'#327ccf',fillOpacity:isRain?Math.min(.78,.38+rainAmount(sample)*.12):.53,dashArray:null})
             .setPopupContent(popup(detail));
           const cell=chunk[i];
           const coords=[cell.lat,cell.rawLon];
@@ -120,7 +135,7 @@ export function rainMap(origin,weather,elements) {
     }
     if (disposed || signal.aborted) return;
     const timestamp=refreshed ? ' Updated '+new Date(refreshed).toLocaleTimeString([], {hour:'numeric',minute:'2-digit'})+'.' : '';
-    elements.status.textContent='Open-Meteo modeled precipitation. '+wet+' rain · '+dry+' no rain · '+(cells.length-wet-dry)+' no data.'+timestamp+(failed?' '+failed:'');
+    elements.status.textContent='Open-Meteo model. '+wet+(isRain?' rain':' matching')+' · '+dry+(isRain?' no rain':' other conditions')+' · '+(cells.length-wet-dry)+' no data.'+timestamp+(failed?' '+failed:'');
   }
   map.on('moveend',()=>{
     clearTimeout(timer);
@@ -128,6 +143,6 @@ export function rainMap(origin,weather,elements) {
     timer=setTimeout(update,420);
   });
   void update();
-  return {refresh:()=>update(true),recenter:()=>map.setView(latLng(origin),8,{animate:false}),
+  return {select:next=>{selection=next;return update();},refresh:()=>update(true),recenter:()=>map.setView(latLng(origin),8,{animate:false}),
     remove:()=>{disposed=true;clearTimeout(timer);controller?.abort();map.remove();}};
 }

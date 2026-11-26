@@ -1,6 +1,6 @@
 # Weather Finder
 
-Chase your weather. Pick a condition to find matching destinations nearby, or open a map of modeled rain around you. The app runs in the browser on GitHub Pages.
+Chase your weather. Pick a condition to find matching destinations nearby, or open a map of modeled weather around you. The app runs in the browser on GitHub Pages.
 
 ## Run and test
 
@@ -30,9 +30,9 @@ Now uses the Open-Meteo current model fields, except snow depth uses the latest 
 | Snow cover | Snow depth ≥1 cm |
 | Temperature | Within 3°F of the target |
 
-## Rain map
+## Nearby weather map
 
-The map samples current rain plus showers on a zoom-dependent grid and paints the sampled cells. Blue indicates modeled rain, pale solid cells indicate a sample below the rain threshold, and dashed outlines indicate unavailable data. Areas outside sampled cells also have no data. Opacity reflects the amount and a popup shows precipitation in millimeters over the model interval. Snowfall is excluded from the rain layer. These cells show approximate modeled coverage and may miss local showers. The update time is the oldest successful retrieval shown in the current view.
+The map defaults to Rain. The dropdown switches among the same nine categories as search, with an optional target for Temperature. The map applies the search thresholds to modeled current conditions on a zoom-dependent grid. Switching categories reuses the shared in-memory API cache, with hourly data required for snow cover. For Rain, the map samples current rain plus showers. Blue indicates modeled rain, pale solid cells indicate a sample below the rain threshold, and dashed outlines indicate unavailable data. Areas outside sampled cells also have no data. Opacity reflects the amount and a popup shows precipitation in millimeters over the model interval. Snowfall is excluded from the rain layer. These cells show approximate modeled coverage and may miss local showers. For other categories, blue marks matches and pale solid cells show other sampled conditions. The update time is the oldest successful retrieval shown in the current view.
 
 The coverage fills in batches from the map center, with a maximum of 48 cells per view and a 420 ms delay after panning or zooming. Reused areas can load from the cache. Refresh bypasses cached entries for the current view at most once per minute. RainViewer’s free radar was evaluated. Its past radar tiles cover participating radars and would require separate coverage and interpretation logic. Modeled cells use the same source and budget as the weather search and work outside radar coverage.
 

@@ -1,4 +1,4 @@
-import {conditions,WeatherService,rainAmount} from './weather.js';
+import {conditions,WeatherService,rainAmount,weatherMetric} from './weather.js';
 import {findWeather} from './search.js';
 import {rainMap,showResults} from './maps.js';
 
@@ -7,7 +7,10 @@ const weather=new WeatherService();
 const tints=['--yellow','--sky','--sky','--lilac','--mint','--lilac','--mint','--sky','--peach'];
 let origin, route, rain, resultMap, search, lookup;
 const options=$('weather-options');
+const mapPicker=$('map-weather');
+let mapTarget=$('map-temperature').valueAsNumber;
 Object.keys(conditions).forEach((category,i)=>{
+  mapPicker.add(new Option(category,category,false,category==='Rain'));
   const label=document.createElement('label');
   const input=document.createElement('input');
   Object.assign(input,{name:'weather',type:'radio',value:category,checked:i===0});
@@ -107,12 +110,29 @@ function loadRain() {
   $('rain-map').hidden=!origin;
   for (const id of ['refresh','recenter']) $(id).disabled=!origin;
   if (!origin) {
-    $('rain-status').textContent='Set a starting location to see nearby rain.';
+    $('rain-status').textContent='Set a starting location to see nearby weather.';
     openLocation();
     return;
   }
-  rain=rainMap(origin,weather,{status:$('rain-status'),list:$('rain-list'),details:$('rain-details')});
+  rain=rainMap(origin,weather,{status:$('rain-status'),list:$('rain-list'),details:$('rain-details')},mapSelection());
 }
+function mapSelection() {
+  return {category:mapPicker.value,target:mapTarget};
+}
+function updateMapSelection() {
+  const selection=mapSelection();
+  const rainSelected=selection.category==='Rain';
+  $('map-temperature-field').hidden=selection.category!=='Temperature';
+  $('map-match-label').textContent=rainSelected?'Rain':'Matches '+selection.category.toLowerCase();
+  $('map-other-label').textContent=rainSelected?'No rain sampled':'Other conditions';
+  rain?.select(selection);
+}
+mapPicker.onchange=updateMapSelection;
+$('map-temperature').onchange=()=>{
+  if (!$('map-temperature').reportValidity()) return;
+  mapTarget=$('map-temperature').valueAsNumber;
+  updateMapSelection();
+};
 $('refresh').onclick=()=>rain?.refresh();
 $('recenter').onclick=()=>rain?.recenter();
 function radiusLabel() {
@@ -128,18 +148,6 @@ function clearResults() {
   $('results').hidden=true;
   $('search-status').textContent='';
 }
-function metric(sample,category) {
-  const minutes=(sample.interval||900)/60;
-  return ({
-    Sunny:sample.cloud_cover+'% cloud cover',Cloudy:sample.cloud_cover+'% cloud cover',
-    Rain:(rainAmount(sample) ?? 0).toFixed(1)+' mm rain in '+minutes+' min',
-    Snowfall:sample.snowfall+' cm snowfall in '+minutes+' min',
-    Stormy:'Thunderstorms indicated',Foggy:'Fog indicated',
-    Windy:Math.round(sample.wind_speed_10m)+' mph winds',
-    'Snow cover':(sample.snow_depth*100).toFixed(0)+' cm snow on the ground',
-    Temperature:Math.round(sample.temperature_2m)+'°F'
-  })[category];
-}
 function timeLabel(sample,zone,fallback) {
   return new Intl.DateTimeFormat('en',{timeZone:zone||fallback,weekday:'short',hour:'numeric',minute:'2-digit',timeZoneName:'short'}).format(new Date(sample.time+'Z'));
 }
@@ -152,7 +160,7 @@ function displayResults(result,category,timeframe,radius,anchor) {
     const {sample}=place;
     const li=document.createElement('li'), title=document.createElement('h3'), details=document.createElement('p');
     title.textContent=(index+1)+'. '+place.name+' ('+place.region+') · '+(place.miles<1?'<1':Math.round(place.miles))+' mi';
-    details.textContent=(timeframe==='Now'?'Modeled now':'Forecast')+' · '+timeLabel(sample,place.zone,anchor.zone)+' · '+metric(sample,category);
+    details.textContent=(timeframe==='Now'?'Modeled now':'Forecast')+' · '+timeLabel(sample,place.zone,anchor.zone)+' · '+weatherMetric(sample,category);
     li.append(title,details);
     const hazardous=['Stormy','Foggy','Snowfall'].includes(category) || [45,48,56,57,66,67,75,82,86,95,96,99].includes(sample.weather_code) ||
       sample.wind_speed_10m>=35 || rainAmount(sample)>=(sample.interval===3600?7.5:1.9) ||

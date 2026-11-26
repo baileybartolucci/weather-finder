@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {WeatherService,conditions,distance,matching,rainAmount} from '../js/weather.js';
 import {findWeather} from '../js/search.js';
-import {viewportCells} from '../js/maps.js';
+import {viewportCells,mapSample} from '../js/maps.js';
 
 const baseline={rain:0,showers:0,weather_code:0,is_day:1,cloud_cover:10,temperature_2m:70,snowfall:0,wind_speed_10m:2};
 const row={current:{...baseline,time:'2026-11-26T21:15',interval:900},
@@ -126,4 +126,14 @@ test('a rain map and immediate Now search fit one budget without downloading for
   const [forecast]=await service.get([points[0]]);
   assert.ok(forecast.hourly.time.length);
   assert.ok(requested.at(-1).has('hourly'));
+});
+
+test('map categories share thresholds and distinguish missing data from other weather',()=>{
+  const now=Date.parse('2026-11-26T21:17Z');
+  assert.equal(mapSample(row,'Cloudy',0,now).match,false);
+  assert.equal(mapSample(row,'Sunny',0,now).match,true);
+  assert.equal(mapSample(row,'Temperature',72,now).match,true);
+  assert.equal(mapSample(row,'Snow cover',0,now).sample.snow_depth,.02);
+  assert.equal(mapSample({current:row.current},'Snow cover',0,now),null);
+  assert.equal(mapSample({current:{rain:null,showers:1}},'Rain',0,now),null);
 });

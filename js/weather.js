@@ -107,12 +107,16 @@ export function dayAt(time,zone) {
   return new Intl.DateTimeFormat('en-CA',{timeZone:zone,year:'numeric',month:'2-digit',day:'2-digit'}).format(time);
 }
 const utc = iso => Date.parse(iso+'Z');
+export function currentSample(row,category,now) {
+  if (category!=='Snow cover') return row.current;
+  const h = row.hourly;
+  const index = h?.time.findLastIndex(time=>utc(time)<=now) ?? -1;
+  return {...row.current,snow_depth:h?.snow_depth?.[index],time:h?.time[index] || row.current.time};
+}
 export function matching(row,category,target,timeframe,zone,now) {
   const h = row.hourly;
   if (timeframe==='Now') {
-    const index = h?.time.findLastIndex(time=>utc(time)<=now) ?? -1;
-    const sample = {...row.current,snow_depth:h?.snow_depth?.[index]};
-    if (category==='Snow cover' && index>=0) sample.time=h.time[index];
+    const sample = currentSample(row,category,now);
     return conditions[category](sample,target) ? sample : null;
   }
   const today = dayAt(now,zone);
@@ -126,4 +130,17 @@ export function matching(row,category,target,timeframe,zone,now) {
     if (conditions[category](sample,target)) return sample;
   }
   return null;
+}
+
+export function weatherMetric(sample,category) {
+  const minutes=(sample.interval||900)/60;
+  return ({
+    Sunny:sample.cloud_cover+'% cloud cover',Cloudy:sample.cloud_cover+'% cloud cover',
+    Rain:(rainAmount(sample) ?? 0).toFixed(1)+' mm rain in '+minutes+' min',
+    Snowfall:sample.snowfall+' cm snowfall in '+minutes+' min',
+    Stormy:'Thunderstorms indicated',Foggy:'Fog indicated',
+    Windy:Math.round(sample.wind_speed_10m)+' mph winds',
+    'Snow cover':(sample.snow_depth*100).toFixed(0)+' cm snow on the ground',
+    Temperature:Math.round(sample.temperature_2m)+'°F'
+  })[category];
 }

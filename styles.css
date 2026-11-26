@@ -61,7 +61,7 @@ input[type=number],input[type=text],#city{min-height:44px;border:1px solid #8d9d
 .search-actions{display:flex;gap:8px;flex-wrap:wrap}
 #search-status,#result-note,.rain-meta{margin-block:9px}
 .map{background:#e4e8e1;border:1px solid #aabdb2;border-radius:17px;isolation:isolate}
-.rain-map{height:max(360px,calc(100dvh - 265px))}
+.rain-map{height:max(330px,calc(100dvh - 305px))}
 .results-map{height:clamp(260px,46vh,470px);margin-block:12px}
 .rain-heading{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:8px;margin-bottom:11px}
 .rain-heading h1{font-size:clamp(2rem,6vw,3.2rem)}
@@ -99,3 +99,7 @@ summary{min-height:44px;cursor:pointer}
 }
 @media(max-width:355px){.trail{grid-template-columns:43px 1fr 27px;gap:8px}.stamp{width:43px;height:48px}.stamp img{width:35px;height:35px}.arrow{width:27px;height:27px}}
 @media(prefers-reduced-motion:no-preference){.arrow{transition:background .16s,color .16s}.hero-copy{animation:arrive .43s ease-out}@keyframes arrive{from{opacity:.6;transform:translateY(5px)}to{opacity:1;transform:none}}}
+
+.map-picker{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:9px}
+.map-picker select{min-height:44px;font:inherit;color:var(--ink);background:#fffdf7;border:1px solid #8d9d92;border-radius:12px;padding:7px 12px}
+#map-temperature{width:6ch;margin-left:4px}
