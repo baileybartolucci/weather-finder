@@ -8,7 +8,7 @@ const popup=text=>{
   return el;
 };
 export function createMap(id,origin,zoom) {
-  const map=L.map(id,{scrollWheelZoom:id==='rain-map',maxZoom:16,minZoom:2}).setView(latLng(origin),zoom);
+  const map=L.map(id,{scrollWheelZoom:id==='rain-map',maxZoom:16,minZoom:2,zoomAnimation:false}).setView(latLng(origin),zoom);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     maxZoom:19,keepBuffer:1
