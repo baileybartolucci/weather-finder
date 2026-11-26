@@ -62,8 +62,10 @@ const rainDetail=(amount,row)=>'Modeled rain: '+amount.toFixed(1)+' mm in the pr
 export function rainMap(origin,weather,elements) {
   const map=createMap('rain-map',origin,8);
   const layer=L.layerGroup().addTo(map);
-  let timer, controller, disposed=false;
+  let timer, controller, disposed=false, lastRefresh=0;
   async function update(force=false) {
+    if (force && Date.now()-lastRefresh<60000) return;
+    if (force) lastRefresh=Date.now();
     clearTimeout(timer);
     controller?.abort();
     controller=new AbortController();
@@ -82,7 +84,7 @@ export function rainMap(origin,weather,elements) {
       if (signal.aborted) return;
       const chunk=cells.slice(offset,offset+12);
       try {
-        const rows=await weather.get(chunk,{signal,force});
+        const rows=await weather.get(chunk,{signal,force,currentOnly:true});
         if (signal.aborted) return;
         rows.forEach((record,i)=>{
           const row=record.current, amount=rainAmount(row), rect=rectangles[offset+i];

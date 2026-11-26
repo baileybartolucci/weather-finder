@@ -35,7 +35,7 @@ export async function findWeather({origin,category,target,timeframe,radius,unlim
   async function check(group) {
     if (!group.length) return;
     signal.throwIfAborted();
-    const weatherRows=await weather.get(group,{signal});
+    const weatherRows=await weather.get(group,{signal,currentOnly:timeframe==='Now' && category!=='Snow cover'});
     count+=group.length;
     group.forEach((place,i)=>{
       const sample=matching(weatherRows[i],category,target,timeframe,zone,now);

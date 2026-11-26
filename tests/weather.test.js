@@ -67,7 +67,7 @@ test('weighted local limit and 429 backoff block further network I/O',async()=>{
     return new Response(JSON.stringify(Array(n).fill(row)));
   });
   await service.get(Array.from({length:120},(_,i)=>({lat:10,lon:i/10})));
-  await assert.rejects(service.get([{lat:2,lon:2}]),/request limit/);
+  await assert.rejects(service.get([{lat:2,lon:2}]),/request budget/);
   assert.equal(calls,10);
   const busy=new WeatherService(async()=>{
     calls++;
@@ -104,4 +104,26 @@ test('search preserves prior coverage on failure and honors cancellation',async(
   assert.equal(result.reached,25);
   const controller=new AbortController();
   await assert.rejects(findWeather({...options,signal:controller.signal,progress:()=>controller.abort()}),{name:'AbortError'});
+});
+
+test('a rain map and immediate Now search fit one budget without downloading forecasts',async()=>{
+  const requested=[];
+  const service=new WeatherService(async url=>{
+    const params=new URL(url).searchParams;
+    requested.push(params);
+    const n=params.get('latitude').split(',').length;
+    const response=params.has('hourly') ? row : {current:row.current};
+    return new Response(JSON.stringify(n===1 ? response : Array(n).fill(response)));
+  });
+  const points=Array.from({length:144},(_,i)=>({lat:10,lon:i/10}));
+  await service.get(points.slice(0,48),{currentOnly:true});
+  const current=await service.get(points.slice(0,96),{currentOnly:true});
+  assert.equal(service.usage.reduce((sum,[,cost])=>sum+cost,0),96);
+  assert.equal(requested.length,8);
+  assert.ok(requested.every(params=>!params.has('hourly')));
+  assert.equal(matching(current[0],'Sunny',0,'Now','GMT',Date.now()).cloud_cover,10);
+  await service.get(points.slice(96),{currentOnly:true});
+  const [forecast]=await service.get([points[0]]);
+  assert.ok(forecast.hourly.time.length);
+  assert.ok(requested.at(-1).has('hourly'));
 });
