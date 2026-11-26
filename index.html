@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#fffaf0">
+<meta name="description" content="Find the closest places with the weather you want, or explore rain nearby.">
+<title>Weather Finder</title>
+<link rel="icon" href="./assets/sun.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./assets/leaflet/leaflet.css">
+<link rel="stylesheet" href="./styles.css">
+<script defer src="./assets/leaflet/leaflet.js"></script>
+<script type="module" src="./js/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="shell top">
+  <a class="wordmark" href="#" aria-label="Weather Finder home"><img src="./assets/sun.svg" alt="" width="34" height="34"> Weather Finder</a>
+  <button class="location-button" type="button" data-location><span aria-hidden="true">⌖</span> <span data-place>Set location</span></button>
+</header>
+<main id="main" class="shell" tabindex="-1">
+  <section id="home">
+    <div class="hero">
+      <div class="hero-copy"><h1 tabindex="-1">Weather<br>Finder</h1><p>Chase your weather.</p></div>
+      <img class="landscape" src="./assets/landscape.svg" alt="" width="800" height="440">
+    </div>
+    <nav class="trails" aria-label="Weather Finder activities">
+      <a class="trail sunshine" href="#pick"><span class="stamp"><img src="./assets/sun.svg" alt=""></span><span><strong>Pick your weather</strong><small>Find the weather you want to experience.</small></span><span class="arrow" aria-hidden="true">↗</span></a>
+      <a class="trail mint" href="#nearby"><span class="stamp"><img src="./assets/rain.svg" alt=""></span><span><strong>See what's near you</strong><small>Explore rain in your surrounding area.</small></span><span class="arrow" aria-hidden="true">↗</span></a>
+    </nav>
+  </section>
+  <section id="pick" hidden>
+    <a class="back" href="#">← Home</a>
+    <div class="pick-intro"><h1 tabindex="-1">Pick your weather</h1></div>
+    <form id="search-form" class="search-form">
+      <fieldset><legend>What are you chasing?</legend><div id="weather-options" class="weather-options"></div>
+        <div id="temperature-field" hidden><label for="temperature">Target temperature (°F)</label><input id="temperature" type="number" min="-80" max="140" value="72"><small>Matches within 3°F</small></div>
+      </fieldset>
+      <div class="search-settings">
+        <fieldset><legend>How far?</legend>
+          <label class="distance" for="radius">Search radius <output id="radius-value" for="radius">100 mi</output></label>
+          <input type="range" id="radius" min="25" max="500" step="25" value="100">
+          <div class="ends"><span>25 mi</span><span>500 mi</span></div>
+          <label class="check"><input type="checkbox" id="unlimited"> Unlimited</label>
+        </fieldset>
+        <fieldset><legend>When?</legend>
+          <div class="periods">
+            <label><input type="radio" name="when" value="Now" checked><span>Now</span></label>
+            <label><input type="radio" name="when" value="Today"><span>Today</span></label>
+            <label><input type="radio" name="when" value="Tomorrow"><span>Tomorrow</span></label>
+          </div>
+        </fieldset>
+      </div>
+      <div class="search-actions"><button class="primary" id="search-button">Find my weather <span aria-hidden="true">↗</span></button><button type="button" id="cancel-search" hidden>Cancel search</button></div>
+    </form>
+    <p id="search-status" role="status"></p>
+    <section id="results" hidden aria-labelledby="results-title">
+      <h2 id="results-title" tabindex="-1">Weather matches</h2>
+      <p id="result-note"></p>
+      <div class="map results-map" id="results-map" aria-label="Weather results map"></div>
+      <ol id="result-list"></ol>
+    </section>
+  </section>
+  <section id="nearby" hidden>
+    <a class="back" href="#">← Home</a>
+    <div class="rain-heading"><h1 tabindex="-1">Rain near you</h1><div class="map-actions"><button id="recenter" type="button">⌖ Recenter</button><button id="refresh" type="button">↻ Refresh</button></div></div>
+    <div class="map rain-map" id="rain-map" aria-label="Nearby modeled rain map"></div>
+    <div class="map-key" aria-label="Map legend"><span><i class="wet"></i> Rain</span><span><i class="dry"></i> No rain sampled</span><span><i class="unknown"></i> No data</span></div>
+    <p class="rain-meta" id="rain-status" role="status"></p>
+    <details id="rain-details" hidden><summary>Rain samples on this map</summary><ul id="rain-list"></ul></details>
+  </section>
+</main>
+<footer class="shell footer"><a href="https://open-meteo.com/">Weather by Open-Meteo</a><span> · </span><a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a><span> · </span><a href="https://www.geonames.org/">Places by GeoNames</a></footer>
+<dialog id="location-dialog" aria-labelledby="location-title">
+  <div class="dialog-top"><h2 id="location-title">Starting location</h2><button type="button" id="close-location" aria-label="Close location picker">×</button></div>
+  <button id="gps" type="button" class="gps">⌖ Use my location</button>
+  <form id="city-form"><label for="city">City or postal code</label><div class="city-row"><input id="city" required minlength="2" maxlength="100" autocomplete="off" placeholder="e.g. Portland, Oregon"><button class="primary">Search</button></div></form>
+  <p id="location-status" role="status"></p><ul id="cities"></ul>
+  <p class="privacy">Location stays in this tab. The map and weather services receive requests for the area you explore.</p>
+</dialog>
+</body>
+</html>
